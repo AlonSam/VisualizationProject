@@ -14,8 +14,8 @@ server = app.server
 
 load_figure_template('FLATLY')
 
-forecasts_df = preprocess_forecasts_df(pd.read_csv('wc_forecasts.csv'))
-matches_df = preprocess_matches_df(pd.read_csv('wc_matches.csv'))
+forecasts_df = preprocess_forecasts_df(pd.read_csv('https://raw.githubusercontent.com/AlonSam/VisualizationProject/main/wc_forecasts.csv'))
+matches_df = preprocess_matches_df(pd.read_csv('https://raw.githubusercontent.com/AlonSam/VisualizationProject/main/wc_matches.csv'))
 
 win_probability_fig = get_win_probability_fig(forecasts_df, ['Brazil', 'France'])
 top_teams_fig = get_top_teams_fig(forecasts_df, 'Win League')
