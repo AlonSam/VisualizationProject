@@ -84,6 +84,7 @@ def get_chances_saudi_arabia_fig(forecasts_df):
                       title_x=0.5)
     return fig
 
+
 def get_argentina_matches_won_card(matches_df):
     argentina_matches = get_team_matches(matches_df, ARGENTINA)
     argentina_matches['won'] = argentina_matches.apply(lambda x: 1 if x['team1'] == ARGENTINA and x['score1'] >= x['score2'] else 1 if x['team2'] == ARGENTINA and x['score2'] >= x['score1'] else 0, axis=1)

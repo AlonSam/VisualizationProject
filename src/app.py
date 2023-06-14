@@ -10,6 +10,7 @@ from figures import *
 from utils import preprocess_matches_df, preprocess_forecasts_df
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+server = app.server
 
 load_figure_template('FLATLY')
 
