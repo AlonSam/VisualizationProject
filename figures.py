@@ -134,7 +134,7 @@ def get_goals_vs_projected_fig(matches_df, match_num):
     fig.update_traces(hoverinfo='none', hovertemplate=None)
     fig.update_layout(title=f'Match Statistics',
                       xaxis_title='Metric',
-                      yaxis=dict(tickformat=".1", title='Goals'),
+                      yaxis=dict(title='Goals'),
                       title_x=0.5)
     return fig
 
