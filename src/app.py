@@ -5,7 +5,8 @@ from dash_bootstrap_templates import load_figure_template
 from dash.dependencies import Input, Output
 import pandas as pd
 
-from components import get_team_dropdown_options, get_stage_options, get_team_match_options
+from components import get_team_dropdown_options, get_stage_options, get_team_match_options, get_slider_marks
+from consts import LABEL_TO_DESC
 from figures import *
 from utils import preprocess_matches_df, preprocess_forecasts_df
 
@@ -14,13 +15,16 @@ server = app.server
 
 load_figure_template('FLATLY')
 
-forecasts_df = preprocess_forecasts_df(pd.read_csv('https://raw.githubusercontent.com/AlonSam/VisualizationProject/main/wc_forecasts.csv'))
-matches_df = preprocess_matches_df(pd.read_csv('https://raw.githubusercontent.com/AlonSam/VisualizationProject/main/wc_matches.csv'))
+forecasts_df = preprocess_forecasts_df(
+    pd.read_csv('https://raw.githubusercontent.com/AlonSam/VisualizationProject/main/wc_forecasts.csv'))
+matches_df = preprocess_matches_df(
+    pd.read_csv('https://raw.githubusercontent.com/AlonSam/VisualizationProject/main/wc_matches.csv'))
 
 win_probability_fig = get_win_probability_fig(forecasts_df, ['Brazil', 'France'])
-top_teams_fig = get_top_teams_fig(forecasts_df, 'Win League')
-goals_vs_projected_fig = get_goals_vs_projected_fig(matches_df, 'Saudi Arabia')
-match_probability_fig = get_match_probability_fig(matches_df, 'Saudi Arabia')
+top_teams_fig = get_top_teams_fig(forecasts_df, 'Win World Cup')
+# top_teams_fig = get_top_teams_treemap_fig(forecasts_df, 'Win World Cup')
+goals_vs_projected_fig = get_goals_vs_projected_fig(matches_df, 0)
+match_probability_fig = get_match_probability_fig(matches_df, 0)
 chances_saudi_arabia_fig = get_chances_saudi_arabia_fig(forecasts_df)
 
 
@@ -68,7 +72,7 @@ def get_dash_layout():
                                          dcc.Dropdown(
                                              id='round-dropdown',
                                              options=get_stage_options(),
-                                             value='Win League'
+                                             value='Win World Cup'
                                          ),
                                          dcc.Graph(
                                              id='top-teams-graph',
@@ -88,12 +92,18 @@ def get_dash_layout():
                     dbc.Row(
                         [
                             dbc.Col([
-                                html.Label('Select opponent:', style={'font-weight': 'bold', 'text-align': 'center'}),
-                                dcc.Dropdown(
-                                    id='team-match-dropdown',
-                                    options=get_team_match_options(matches_df, 'Argentina'),
-                                    value='Saudi Arabia',
-                                )
+                                html.Label('Select Match:', style={'font-weight': 'bold', 'text-align': 'center',
+                                                                   'justify-content': 'center', 'display': 'flex'}),
+                                html.Div(id='team-match-slider-container', children=[
+                                    dcc.Slider(0, 6, id='team-match-slider', step=1,
+                                               marks=get_slider_marks(matches_df, 'Argentina'), value=0)
+                                ],
+                                         style={'height': '100px'}),
+                                # dcc.Dropdown(
+                                #     id='team-match-dropdown',
+                                #     options=get_team_match_options(matches_df, 'Argentina'),
+                                #     value='Saudi Arabia',
+                                # )
                             ],
                                 width={'size': 8, 'offset': 2, 'order': 1},
                             )
@@ -104,7 +114,9 @@ def get_dash_layout():
                                 dcc.Graph(
                                     id='goals-vs-projected-graph',
                                     figure=goals_vs_projected_fig,
+                                    clear_on_unhover=True
                                 ),
+                                dcc.Tooltip(id='graph-tooltip')
                             ],
                                 width={'size': 4, 'offset': 2, 'order': 1},
                             ),
@@ -160,18 +172,44 @@ def build_top_teams_fig(stage):
 
 @app.callback(
     Output(component_id='goals-vs-projected-graph', component_property='figure'),
-    [Input(component_id='team-match-dropdown', component_property='value')]
+    [Input(component_id='team-match-slider', component_property='value')]
 )
-def build_goals_vs_projected_fig(opponent):
-    return get_goals_vs_projected_fig(matches_df, opponent)
+def build_goals_vs_projected_fig(match_num):
+    return get_goals_vs_projected_fig(matches_df, match_num)
+
+
+@app.callback(
+    Output(component_id='graph-tooltip', component_property='show'),
+    Output(component_id='graph-tooltip', component_property='bbox'),
+    Output(component_id='graph-tooltip', component_property='children'),
+    Input(component_id='goals-vs-projected-graph', component_property='hoverData'),
+)
+def display_hover(hoverData):
+    if hoverData is None:
+        return False, None, ''
+    pt = hoverData['points'][0]
+    bbox = pt['bbox']
+    label = pt['label']
+    desc = LABEL_TO_DESC[label]
+    children = [
+        html.Div([
+            html.H3(f'{label}', style={'text-align': 'center', 'color': 'darkblue', 'overflow-wrap': 'break-word'}),
+            html.P(f'{desc}')
+            ], style={'width': '200px', 'white-space': 'normal'}
+        )
+        ]
+    return True, bbox, children
+
+
+
 
 
 @app.callback(
     Output(component_id='match-probabilities-graph', component_property='figure'),
-    [Input(component_id='team-match-dropdown', component_property='value')]
+    [Input(component_id='team-match-slider', component_property='value')]
 )
-def build_match_probability_fig(opponent):
-    return get_match_probability_fig(matches_df, opponent)
+def build_match_probability_fig(match_num):
+    return get_match_probability_fig(matches_df, match_num)
 
 
 app.layout = get_dash_layout()

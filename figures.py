@@ -2,7 +2,7 @@ import plotly.graph_objs as go
 from dash import html
 import dash_bootstrap_components as dbc
 
-from consts import team_color_mapping, STAGE_PROBABILITIES_COLUMNS, ARGENTINA
+from consts import team_color_mapping, STAGE_PROBABILITIES_COLUMNS, ARGENTINA, METRICS_TO_NAME
 from utils import get_first_round, get_match, get_team_matches
 
 
@@ -16,56 +16,153 @@ def get_win_probability_fig(forecasts_df, teams):
                              marker=dict(color=team_color_mapping[ARGENTINA], size=12),
                              name=ARGENTINA))
     for team, group in teams_df.groupby('team'):
-        fig.add_trace(go.Scatter(x=group['round'], y=group['win_league'], mode='lines+markers', opacity=0.5,
+        fig.add_trace(go.Scatter(x=group['round'], y=group['win_league'], mode='lines+markers', opacity=0.4,
                                  marker_color=team_color_mapping[team], name=team, marker_size=12,
                                  marker_opacity=0.5, line=dict(color=team_color_mapping[team], width=3)))
+    fig.update_traces(hovertemplate='<b>%{x}</b><br>%{y:.0%}')
     fig.update_layout(xaxis_title='Round', title='Probability to Win World Cup by Round', title_x=0.5,
                       yaxis=dict(tickformat=".0%", title='Probability to Win World Cup'))
     return fig
 
 
 def get_top_teams_fig(forecasts_df, stage):
+    stage = stage.replace('World Cup', 'League')
     stage_column = "_".join(word.lower() for word in stage.split(' '))
     first_round_df = get_first_round(forecasts_df)
     first_round_df.sort_values(by=stage_column, inplace=True, ascending=False)
     top_start_df = first_round_df.iloc[:10, :]
-    top_start_df['colors'] = top_start_df['team'].apply(lambda x: 'lightgrey' if x != 'Argentina' else team_color_mapping[x])
+    top_start_df['colors'] = top_start_df['team'].apply(
+        lambda x: 'lightgrey' if x != 'Argentina' else team_color_mapping[x])
     fig = go.Figure(
-        data=[go.Bar(x=top_start_df['team'], y=top_start_df[stage_column], marker_color=top_start_df['colors'])])
+        data=[go.Bar(x=top_start_df['team'], y=top_start_df[stage_column], marker_color=top_start_df['colors'],
+                     hovertemplate='<b>%{x}</b><br>%{y:.0%}', text=top_start_df[stage_column].apply(
+                lambda x: f'{x:.0%}'), textposition='inside', texttemplate='%{text}')])
     fig.update_layout(title=f'Top National Teams by Probability to {stage}', xaxis_title='National Team',
                       yaxis=dict(tickformat=".0%", title=f'{stage} Probability'),
                       title_x=0.5)
     return fig
 
 
-def get_goals_vs_projected_fig(matches_df, opponent):
+# def get_top_teams_treemap_fig(forecasts_df, stage):
+#     stage_label = stage.replace('World Cup', 'League')
+#     stage_column = "_".join(word.lower() for word in stage_label.split(' '))
+#     first_round_df = get_first_round(forecasts_df)
+#     first_round_df.sort_values(by=stage_column, inplace=True, ascending=False)
+#     top_start_df = first_round_df.iloc[:10, :]
+#     # top_start_df['colors'] = top_start_df['team'].apply(lambda x: 'lightgrey' if x != 'Argentina' else team_color_mapping[x])
+#     top_start_df['colors'] = top_start_df['team'].apply(lambda x: team_color_mapping[x])
+#     fig = go.Figure(go.Treemap(
+#         labels=top_start_df['team'],
+#         parents=['' for _ in top_start_df['team']],
+#         values=top_start_df[stage_column],
+#         marker_colors=top_start_df['colors'],
+#         textinfo='label+value',
+#         textfont=dict(size=20),
+#         texttemplate="%{label}<br>%{value:.1%}",
+#         hovertemplate='<b>%{label}</b><br>%{value:.1%}<extra></extra>',
+#         branchvalues='total',
+#         marker_line_color='black',
+#         level='',
+#         pathbar=dict(
+#             visible=False
+#         )
+#     ))
+#     fig.update_layout(title=f'Top National Teams by Probability to {stage}', title_x=0.5)
+#     return fig
+
+
+def get_goals_vs_projected_fig(matches_df, match_num):
+    matches_df = get_team_matches(matches_df, ARGENTINA)
+    opponent = matches_df.iloc[match_num]['team2'] if matches_df.iloc[match_num]['team1'] == ARGENTINA else \
+        matches_df.iloc[match_num]['team1']
     match_df = get_match(matches_df, ARGENTINA, opponent)
-    goals_scored = match_df.apply(lambda x: x['score1'] if x['team1'] == ARGENTINA else x['score2'], axis=1)
-    proj_goals_scored = match_df.apply(lambda x: x['proj_score1'] if x['team1'] == ARGENTINA else x['proj_score2'], axis=1)
-    scored_more_than_projected = goals_scored > proj_goals_scored
+    home_team, away_team = match_df['team1'].values[0], match_df['team2'].values[0]
+    if home_team == ARGENTINA:
+        argentina_df = match_df[[f'{metric}1' for metric in METRICS_TO_NAME.keys()]].iloc[0]
+        opponent_df = match_df[[f'{metric}2' for metric in METRICS_TO_NAME.keys()]].iloc[0]
+    else:
+        argentina_df = match_df[[f'{metric}2' for metric in METRICS_TO_NAME.keys()]].iloc[0]
+        opponent_df = match_df[[f'{metric}1' for metric in METRICS_TO_NAME.keys()]].iloc[0]
     fig = go.Figure()
-    fig.add_trace(go.Bar(y=goals_scored, name='Goals Scored', marker_color=team_color_mapping[ARGENTINA] if scored_more_than_projected.all() else 'lightgrey'))
-    fig.add_trace(go.Bar(y=proj_goals_scored, name='Projected Goals', marker_color='lightgrey' if scored_more_than_projected.all() else team_color_mapping[ARGENTINA]))
-    fig.update_layout(title=f'Actual Goals vs Projected Goals Scored by {ARGENTINA}', yaxis_title='Goals', xaxis_visible=False,
+    fig.add_trace(go.Bar(x=list(METRICS_TO_NAME.values()), y=argentina_df, name=ARGENTINA, marker_color=team_color_mapping[ARGENTINA],
+                         text=argentina_df, textposition='auto', textfont=dict(color='black', size=16),
+                         texttemplate='%{y:.1f}',
+                         marker=dict(line=dict(color='black', width=1))))
+    fig.add_trace(go.Bar(x=list(METRICS_TO_NAME.values()), y=opponent_df, name=opponent, marker_color=team_color_mapping[opponent],
+                         text=opponent_df, textposition='auto', textfont=dict(color='black', size=16),
+                         texttemplate='%{y:.1f}',
+                         marker=dict(line=dict(color='black', width=1))))
+    # fig = make_subplots(rows=1, cols=2, shared_yaxes=True, horizontal_spacing=0, shared_xaxes=False, specs=[[{}, {}]])
+    # for metric, metric_name in reversed(METRICS_TO_NAME.items()):
+    #     argentina_metrics = match_df[f'{metric}1'].values if argenetina_is_home else \
+    #         match_df[f'{metric}2'].values
+    #     metrics_dict[opponent][metric] = match_df[f'{metric}1'].values if not argenetina_is_home else \
+    #         match_df[f'{metric}2'].values
+    #     fig.add_trace(
+    #         go.Bar(x=metrics_dict[ARGENTINA][metric],
+    #                name=metric_name,
+    #                marker_color=team_color_mapping[ARGENTINA],
+    #                marker=dict(line=dict(color='black', width=1)),
+    #                textposition='auto',
+    #                width=0.7,
+    #                textfont=dict(color='black', size=16),
+    #                orientation='h',
+    #                y=[metric_name],
+    #                showlegend=False, texttemplate='%{x:.1f}' if metric != 'score' else '%{x}'), 1, 1)
+    #     fig.add_trace(go.Bar(x=metrics_dict[opponent][metric],
+    #                          y=[metric_name],
+    #                          name=metric_name,
+    #                          marker_color=team_color_mapping[opponent],
+    #                          marker=dict(line=dict(color='black', width=1)),
+    #                          showlegend=False,
+    #                          textposition='auto',
+    #                          width=0.7,
+    #                          textfont=dict(size=16),
+    #                          orientation='h',
+    #                          texttemplate='%{x:.1f}' if metric != 'score' else '%{x}'), 1, 2)
+    # fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(color=team_color_mapping[ARGENTINA],
+    #                                                                          symbol='square'),
+    #                          name=ARGENTINA, showlegend=True), 1, 1)
+    # fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(color=team_color_mapping[opponent],
+    #                                                                          symbol='square'),
+    #                          name=opponent, showlegend=True), 1, 2)
+    # fig.update_xaxes(showticklabels=False, row=1, col=1, range=[4, 0])
+    # fig.update_xaxes(showticklabels=False, row=1, col=2, range=[0, 4])
+    # fig.update_layout(title=f'Actual Goals vs Projected Goals Scored by {ARGENTINA}', yaxis_title='Metric',
+    #                   xaxis_visible=False, xaxis_showticklabels=False, title_x=0.9, xaxis1={'side': 'top'},
+    #                   xaxis2={'side': 'top'})
+    fig.update_traces(hoverinfo='none', hovertemplate=None)
+    fig.update_layout(title=f'Match Statistics',
+                      xaxis_title='Metric',
+                      yaxis=dict(tickformat=".1", title='Goals'),
                       title_x=0.5)
     return fig
 
 
-def get_match_probability_fig(matches_df, opponent):
+def get_match_probability_fig(matches_df, match_num):
+    matches_df = get_team_matches(matches_df, ARGENTINA)
+    opponent = matches_df.iloc[match_num]['team2'] if matches_df.iloc[match_num]['team1'] == ARGENTINA else \
+        matches_df.iloc[match_num]['team1']
     match_df = get_match(matches_df, ARGENTINA, opponent).iloc[0]
     fig = go.Figure()
     home_team = match_df['team1']
     away_team = match_df['team2']
     if match_df['probtie'] == 0:
-        pull = [0, 0, 0]
+        pull = [0, 0]
+        prob_values = [match_df['prob1'], match_df['prob2']]
+        labels = [f'{home_team} Win', f'{away_team} Win']
+        colors = [team_color_mapping[home_team], team_color_mapping[away_team]]
     else:
-        pull = [0.2, 0, 0] if home_team == ARGENTINA else [0, 0.2, 0]
-    fig.add_trace(go.Pie(values=[match_df['prob1'], match_df['prob2'], match_df['probtie']],
-                         labels=[f'{home_team} Win', f'{away_team} Win', 'Tie'],
-                         hole=.3, pull=pull))
-    fig.update_traces(hoverinfo='label+percent', textinfo='value', textfont_size=20,
-                      marker=dict(colors=[team_color_mapping[home_team], team_color_mapping[away_team], 'lightgrey'],
-                      line=dict(color='#000000', width=2)), texttemplate='%{percent:.1%}')
+        pull = [0.2, 0, 0] if home_team == ARGENTINA else [0, 0, 0.2]
+        prob_values = [match_df['prob1'], match_df['probtie'], match_df['prob2']]
+        labels = [f'{home_team} Win', 'Tie', f'{away_team} Win']
+        colors = [team_color_mapping[home_team], 'lightgrey', team_color_mapping[away_team]]
+    fig.add_trace(go.Pie(values=prob_values,
+                         labels=labels,
+                         hole=.3,
+                         pull=pull))
+    fig.update_traces(textinfo='value', textfont_size=20, hovertemplate='<b>%{label}</b><br> %{percent:.1%}',
+                      marker=dict(colors=colors, line=dict(color='#000000', width=2)), texttemplate='%{percent:.1%}')
     fig.update_layout(title=f'Pre-Match Probabilities', yaxis=dict(tickformat=".0%"),
                       title_x=0.5)
     return fig
@@ -76,10 +173,19 @@ def get_chances_saudi_arabia_fig(forecasts_df):
     chances_before = argentina_df.iloc[0, :][STAGE_PROBABILITIES_COLUMNS]
     chances_after = argentina_df.iloc[1, :][STAGE_PROBABILITIES_COLUMNS]
     stages = [" ".join([word.capitalize() for word in stage.split('_')]) for stage in STAGE_PROBABILITIES_COLUMNS]
+    stages = [stage.replace('League', 'World Cup') for stage in stages]
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=stages, y=chances_before, name='Before', marker_color=team_color_mapping[ARGENTINA]))
-    fig.add_trace(go.Bar(x=stages, y=chances_after, name='After', marker_color='lightgrey'))
-    fig.update_layout(title=f'{ARGENTINA} Probabilities to Reach Each Round Before and After Saudi Arabia Match', xaxis_title='Stage',
+    fig.add_trace(go.Bar(x=stages, y=chances_before, name='Before', marker_color=team_color_mapping[ARGENTINA],
+                         text=chances_before, textposition='auto', textfont=dict(color='black', size=16),
+                         texttemplate='%{text:.0%}',
+                         marker=dict(line=dict(color='black', width=1))))
+    fig.add_trace(go.Bar(x=stages, y=chances_after, name='After', marker_color='lightgrey',
+                         text=chances_after, textposition='auto', textfont=dict(color='black', size=16),
+                         texttemplate='%{text:.0%}',
+                         marker=dict(line=dict(color='black', width=1))))
+    fig.update_traces(hovertemplate='<b>%{x}</b><br> %{text:.0%}')
+    fig.update_layout(title=f'{ARGENTINA} Probabilities to Reach Each Round Before and After Saudi Arabia Match',
+                      xaxis_title='Stage',
                       yaxis=dict(tickformat=".0%", title='Probability to reach round'),
                       title_x=0.5)
     return fig
@@ -87,7 +193,9 @@ def get_chances_saudi_arabia_fig(forecasts_df):
 
 def get_argentina_matches_won_card(matches_df):
     argentina_matches = get_team_matches(matches_df, ARGENTINA)
-    argentina_matches['won'] = argentina_matches.apply(lambda x: 1 if x['team1'] == ARGENTINA and x['score1'] >= x['score2'] else 1 if x['team2'] == ARGENTINA and x['score2'] >= x['score1'] else 0, axis=1)
+    argentina_matches['won'] = argentina_matches.apply(
+        lambda x: 1 if x['team1'] == ARGENTINA and x['score1'] >= x['score2'] else 1 if x['team2'] == ARGENTINA and x[
+            'score2'] >= x['score1'] else 0, axis=1)
     total_matches_won = argentina_matches['won'].sum()
     card_content = [
         dbc.CardImg(
@@ -100,7 +208,7 @@ def get_argentina_matches_won_card(matches_df):
                 html.H4("Matches Won", className="text-center", style={'font-size': '2rem'}),
                 html.P(f'{total_matches_won}', className="text-center", style={'font-size': '3rem'}),
             ],
-            style={'align-items': 'center', 'justify-content': 'center'}),
+                style={'align-items': 'center', 'justify-content': 'center'}),
         )
     ]
     return dbc.Card(card_content, color="primary", outline=True, style={'height': '100%'})
@@ -108,7 +216,8 @@ def get_argentina_matches_won_card(matches_df):
 
 def get_argentina_goals_card(matches_df):
     argentina_matches = get_team_matches(matches_df, ARGENTINA)
-    argentina_matches['goals'] = argentina_matches.apply(lambda x: x['score1'] if x['team1'] == ARGENTINA else x['score2'], axis=1)
+    argentina_matches['goals'] = argentina_matches.apply(
+        lambda x: x['score1'] if x['team1'] == ARGENTINA else x['score2'], axis=1)
     total_goals = argentina_matches['goals'].sum()
     card_content = [
         dbc.CardImg(
