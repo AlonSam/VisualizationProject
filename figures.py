@@ -89,7 +89,7 @@ def get_goals_vs_projected_fig(matches_df, match_num):
                          texttemplate='%{y:.1f}',
                          marker=dict(line=dict(color='black', width=1))))
     fig.add_trace(go.Bar(x=list(METRICS_TO_NAME.values()), y=opponent_df, name=opponent, marker_color=team_color_mapping[opponent],
-                         text=opponent_df, textposition='auto', textfont=dict(color='black', size=16),
+                         text=opponent_df, textposition='auto', textfont=dict(size=16),
                          texttemplate='%{y:.1f}',
                          marker=dict(line=dict(color='black', width=1))))
     # fig = make_subplots(rows=1, cols=2, shared_yaxes=True, horizontal_spacing=0, shared_xaxes=False, specs=[[{}, {}]])
