@@ -36,7 +36,8 @@ def get_top_teams_fig(forecasts_df, stage):
     fig = go.Figure(
         data=[go.Bar(x=top_start_df['team'], y=top_start_df[stage_column], marker_color=top_start_df['colors'],
                      hovertemplate='<b>%{x}</b><br>%{y:.0%}', text=top_start_df[stage_column].apply(
-                lambda x: f'{x:.0%}'), textposition='inside', texttemplate='%{text}')])
+                lambda x: f'{x:.0%}'), textposition='inside', texttemplate='%{text}',
+                     marker=dict(line=dict(color='black', width=1)))])
     fig.update_layout(title=f'Top National Teams by Probability to {stage}', xaxis_title='National Team',
                       yaxis=dict(tickformat=".0%", title=f'{stage} Probability'),
                       title_x=0.5)
