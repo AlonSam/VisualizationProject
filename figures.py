@@ -21,13 +21,14 @@ def get_win_probability_fig(forecasts_df, teams):
                                  marker_opacity=0.5, line=dict(color=team_color_mapping[team], width=3)))
     fig.update_traces(hovertemplate='<b>%{x}</b><br>%{y:.0%}')
     fig.update_layout(xaxis_title='Round', title='Probability to Win World Cup by Round', title_x=0.5,
-                      yaxis=dict(tickformat=".0%", title='Probability to Win World Cup'))
+                      yaxis=dict(tickformat=".0%", title='Probability to Win World Cup', title_font_size=16),
+                      xaxis_title_font_size=16)
     return fig
 
 
 def get_top_teams_fig(forecasts_df, stage):
-    stage = stage.replace('World Cup', 'League')
-    stage_column = "_".join(word.lower() for word in stage.split(' '))
+    stage_label = stage.replace('World Cup', 'League')
+    stage_column = "_".join(word.lower() for word in stage_label.split(' '))
     first_round_df = get_first_round(forecasts_df)
     first_round_df.sort_values(by=stage_column, inplace=True, ascending=False)
     top_start_df = first_round_df.iloc[:10, :]
@@ -39,37 +40,10 @@ def get_top_teams_fig(forecasts_df, stage):
                 lambda x: f'{x:.0%}'), textposition='inside', texttemplate='%{text}',
                      marker=dict(line=dict(color='black', width=1)))])
     fig.update_layout(title=f'Top National Teams by Probability to {stage}', xaxis_title='National Team',
-                      yaxis=dict(tickformat=".0%", title=f'{stage} Probability'),
+                      yaxis=dict(tickformat=".0%", title=f'Probability to {stage}', title_font_size=16),
+                      xaxis_title_font_size=16,
                       title_x=0.5)
     return fig
-
-
-# def get_top_teams_treemap_fig(forecasts_df, stage):
-#     stage_label = stage.replace('World Cup', 'League')
-#     stage_column = "_".join(word.lower() for word in stage_label.split(' '))
-#     first_round_df = get_first_round(forecasts_df)
-#     first_round_df.sort_values(by=stage_column, inplace=True, ascending=False)
-#     top_start_df = first_round_df.iloc[:10, :]
-#     # top_start_df['colors'] = top_start_df['team'].apply(lambda x: 'lightgrey' if x != 'Argentina' else team_color_mapping[x])
-#     top_start_df['colors'] = top_start_df['team'].apply(lambda x: team_color_mapping[x])
-#     fig = go.Figure(go.Treemap(
-#         labels=top_start_df['team'],
-#         parents=['' for _ in top_start_df['team']],
-#         values=top_start_df[stage_column],
-#         marker_colors=top_start_df['colors'],
-#         textinfo='label+value',
-#         textfont=dict(size=20),
-#         texttemplate="%{label}<br>%{value:.1%}",
-#         hovertemplate='<b>%{label}</b><br>%{value:.1%}<extra></extra>',
-#         branchvalues='total',
-#         marker_line_color='black',
-#         level='',
-#         pathbar=dict(
-#             visible=False
-#         )
-#     ))
-#     fig.update_layout(title=f'Top National Teams by Probability to {stage}', title_x=0.5)
-#     return fig
 
 
 def get_goals_vs_projected_fig(matches_df, match_num):
@@ -93,49 +67,11 @@ def get_goals_vs_projected_fig(matches_df, match_num):
                          text=opponent_df, textposition='auto', textfont=dict(size=16),
                          texttemplate='%{y:.1f}',
                          marker=dict(line=dict(color='black', width=1))))
-    # fig = make_subplots(rows=1, cols=2, shared_yaxes=True, horizontal_spacing=0, shared_xaxes=False, specs=[[{}, {}]])
-    # for metric, metric_name in reversed(METRICS_TO_NAME.items()):
-    #     argentina_metrics = match_df[f'{metric}1'].values if argenetina_is_home else \
-    #         match_df[f'{metric}2'].values
-    #     metrics_dict[opponent][metric] = match_df[f'{metric}1'].values if not argenetina_is_home else \
-    #         match_df[f'{metric}2'].values
-    #     fig.add_trace(
-    #         go.Bar(x=metrics_dict[ARGENTINA][metric],
-    #                name=metric_name,
-    #                marker_color=team_color_mapping[ARGENTINA],
-    #                marker=dict(line=dict(color='black', width=1)),
-    #                textposition='auto',
-    #                width=0.7,
-    #                textfont=dict(color='black', size=16),
-    #                orientation='h',
-    #                y=[metric_name],
-    #                showlegend=False, texttemplate='%{x:.1f}' if metric != 'score' else '%{x}'), 1, 1)
-    #     fig.add_trace(go.Bar(x=metrics_dict[opponent][metric],
-    #                          y=[metric_name],
-    #                          name=metric_name,
-    #                          marker_color=team_color_mapping[opponent],
-    #                          marker=dict(line=dict(color='black', width=1)),
-    #                          showlegend=False,
-    #                          textposition='auto',
-    #                          width=0.7,
-    #                          textfont=dict(size=16),
-    #                          orientation='h',
-    #                          texttemplate='%{x:.1f}' if metric != 'score' else '%{x}'), 1, 2)
-    # fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(color=team_color_mapping[ARGENTINA],
-    #                                                                          symbol='square'),
-    #                          name=ARGENTINA, showlegend=True), 1, 1)
-    # fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(color=team_color_mapping[opponent],
-    #                                                                          symbol='square'),
-    #                          name=opponent, showlegend=True), 1, 2)
-    # fig.update_xaxes(showticklabels=False, row=1, col=1, range=[4, 0])
-    # fig.update_xaxes(showticklabels=False, row=1, col=2, range=[0, 4])
-    # fig.update_layout(title=f'Actual Goals vs Projected Goals Scored by {ARGENTINA}', yaxis_title='Metric',
-    #                   xaxis_visible=False, xaxis_showticklabels=False, title_x=0.9, xaxis1={'side': 'top'},
-    #                   xaxis2={'side': 'top'})
     fig.update_traces(hoverinfo='none', hovertemplate=None)
     fig.update_layout(title=f'Match Statistics',
                       xaxis_title='Metric',
-                      yaxis=dict(title='Goals'),
+                      yaxis=dict(title='Goals', titlefont_size=16),
+                      xaxis=dict(titlefont_size=16),
                       title_x=0.5)
     return fig
 
@@ -164,7 +100,7 @@ def get_match_probability_fig(matches_df, match_num):
                          pull=pull))
     fig.update_traces(textinfo='value', textfont_size=20, hovertemplate='<b>%{label}</b><br> %{percent:.1%}',
                       marker=dict(colors=colors, line=dict(color='#000000', width=2)), texttemplate='%{percent:.1%}')
-    fig.update_layout(title=f'Pre-Match Probabilities', yaxis=dict(tickformat=".0%"),
+    fig.update_layout(title=f'Pre-Match Probabilities', yaxis=dict(tickformat=".0%", title_font_size=16),
                       title_x=0.5)
     return fig
 
@@ -187,7 +123,8 @@ def get_chances_saudi_arabia_fig(forecasts_df):
     fig.update_traces(hovertemplate='<b>%{x}</b><br> %{text:.0%}')
     fig.update_layout(title=f'{ARGENTINA} Probabilities to Reach Each Round Before and After Saudi Arabia Match',
                       xaxis_title='Stage',
-                      yaxis=dict(tickformat=".0%", title='Probability to reach round'),
+                      yaxis=dict(tickformat=".0%", title='Probability to Reach Round', title_font=dict(size=16)),
+                      xaxis=dict(title_font=dict(size=16)),
                       title_x=0.5)
     return fig
 

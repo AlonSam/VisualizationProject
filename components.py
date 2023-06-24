@@ -4,7 +4,7 @@ from utils import get_team_matches
 
 def get_team_dropdown_options(df):
     teams = df['team'].unique()
-    return [{'label': team, 'value': team} for team in teams if team != 'Argentina']
+    return [{'label': team, 'value': team} for team in sorted(teams) if team != 'Argentina']
 
 
 def get_stage_options():

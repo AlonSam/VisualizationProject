@@ -1,11 +1,10 @@
 import dash
-from dash import html, dcc
-import dash_bootstrap_components as dbc
+from dash import dcc
 from dash_bootstrap_templates import load_figure_template
 from dash.dependencies import Input, Output
 import pandas as pd
 
-from components import get_team_dropdown_options, get_stage_options, get_team_match_options, get_slider_marks
+from components import get_team_dropdown_options, get_stage_options, get_slider_marks
 from consts import LABEL_TO_DESC
 from figures import *
 from utils import preprocess_matches_df, preprocess_forecasts_df
@@ -22,7 +21,6 @@ matches_df = preprocess_matches_df(
 
 win_probability_fig = get_win_probability_fig(forecasts_df, ['Brazil', 'France'])
 top_teams_fig = get_top_teams_fig(forecasts_df, 'Win World Cup')
-# top_teams_fig = get_top_teams_treemap_fig(forecasts_df, 'Win World Cup')
 goals_vs_projected_fig = get_goals_vs_projected_fig(matches_df, 0)
 match_probability_fig = get_match_probability_fig(matches_df, 0)
 chances_saudi_arabia_fig = get_chances_saudi_arabia_fig(forecasts_df)
@@ -99,11 +97,6 @@ def get_dash_layout():
                                                marks=get_slider_marks(matches_df, 'Argentina'), value=0)
                                 ],
                                          style={'height': '100px'}),
-                                # dcc.Dropdown(
-                                #     id='team-match-dropdown',
-                                #     options=get_team_match_options(matches_df, 'Argentina'),
-                                #     value='Saudi Arabia',
-                                # )
                             ],
                                 width={'size': 8, 'offset': 2, 'order': 1},
                             )
@@ -201,9 +194,6 @@ def display_hover(hoverData):
     return True, bbox, children
 
 
-
-
-
 @app.callback(
     Output(component_id='match-probabilities-graph', component_property='figure'),
     [Input(component_id='team-match-slider', component_property='value')]
@@ -214,6 +204,5 @@ def build_match_probability_fig(match_num):
 
 app.layout = get_dash_layout()
 
-# Run the application
 if __name__ == '__main__':
     app.run_server(debug=True)
